@@ -33,6 +33,7 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.app.NotificationChannel;
 
 import org.json.JSONObject;
 
@@ -64,6 +65,8 @@ public class ForegroundService extends Service {
 
     // Partial wake lock to prevent the app from going to sleep when locked
     private PowerManager.WakeLock wakeLock;
+    
+    private final String CHANNEL_ID = "cordova-plugin-background-mode-id";
 
     /**
      * Allow clients to call on to the service.
@@ -153,6 +156,20 @@ public class ForegroundService extends Service {
      * @param settings The config settings
      */
     private Notification makeNotification(JSONObject settings) {
+        if (Build.VERSION.SDK_INT >= 26) {
+            // The user-visible name of the channel
+            CharSequence name = "cordova-plugin-background-mode";
+            String description = "codova-plugin-background-mode notification";
+
+            int importance = NotificationManager.IMPORTANCE_LOW;
+
+            NotificationChannel mChannel = new NotificationChannel(this.CHANNEL_ID, name, importance);
+            
+            // Configure the notification channel
+            mChannel.setDescription(description);
+
+            getNotificationManager().createNotificationChannel(mChannel);
+        }
         String title    = settings.optString("title", NOTIFICATION_TITLE);
         String text     = settings.optString("text", NOTIFICATION_TEXT);
         boolean bigText = settings.optBoolean("bigText", false);
@@ -167,6 +184,10 @@ public class ForegroundService extends Service {
                 .setContentText(text)
                 .setOngoing(true)
                 .setSmallIcon(getIconResId(settings));
+
+        if (Build.VERSION.SDK_INT >= 26) {
+            notification.setChannelId(this.CHANNEL_ID);
+        }
 
         if (settings.optBoolean("hidden", true)) {
             notification.setPriority(Notification.PRIORITY_MIN);
